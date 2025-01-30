@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -208,6 +209,19 @@ public class JedisClusterFactory {
   private static ConnectionPoolConfig createConnectionPoolConfig() {
     ConnectionPoolConfig connectionPoolConfig = new ConnectionPoolConfig();
     connectionPoolConfig.setMaxTotal(configs.getBackplane().getJedisPoolMaxTotal());
+
+    log.log(Level.FINE, "Default maxIdle=" + connectionPoolConfig.getMaxIdle());
+    connectionPoolConfig.setMaxIdle(configs.getBackplane().getJedisPoolMaxTotal());
+    log.log(Level.FINE, "PATCHED maxIdle=" + connectionPoolConfig.getMaxIdle());
+
+    log.log(Level.FINE, "Default minIdle=" + connectionPoolConfig.getMinIdle());
+    connectionPoolConfig.setMinIdle(600);
+    log.log(Level.FINE, "PATCHED minIdle=" + connectionPoolConfig.getMinIdle());
+
+    log.log(Level.FINE, "Default timeBetweenEvictionRunsMillis=" + connectionPoolConfig.getTimeBetweenEvictionRuns());
+    connectionPoolConfig.setTimeBetweenEvictionRuns(Duration.ofMillis(-1L));
+    log.log(Level.FINE, "PATCHED timeBetweenEvictionRunsMillis=" + connectionPoolConfig.getTimeBetweenEvictionRuns());
+
     return connectionPoolConfig;
   }
 
