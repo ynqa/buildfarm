@@ -151,23 +151,23 @@ class RedisShardSubscriber extends JedisPubSub {
     }
   }
 
-  private void terminateExpiredWatchers(String channel, Instant now, boolean force) {
-    onOperation(
-        channel,
-        /* operation= */ null,
-        (watcher) -> {
-          boolean expired = force || watcher.isExpiredAt(now);
-          if (expired) {
-            log.log(
-                Level.SEVERE,
-                format(
-                    "Terminating expired watcher of %s because: %s >= %s%s",
-                    channel, now, watcher.getExpiresAt(), force ? " with force" : ""));
-          }
-          return expired;
-        },
-        /* expiresAt= */ null);
-  }
+//  private void terminateExpiredWatchers(String channel, Instant now, boolean force) {
+//    onOperation(
+//        channel,
+//        /* operation= */ null,
+//        (watcher) -> {
+//          boolean expired = force || watcher.isExpiredAt(now);
+//          if (expired) {
+//            log.log(
+//                Level.SEVERE,
+//                format(
+//                    "Terminating expired watcher of %s because: %s >= %s%s",
+//                    channel, now, watcher.getExpiresAt(), force ? " with force" : ""));
+//          }
+//          return expired;
+//        },
+//        /* expiresAt= */ null);
+//  }
 
   public void onOperation(String channel, Operation operation, Instant expiresAt) {
     onOperation(channel, operation, (watcher) -> true, expiresAt);
@@ -181,6 +181,7 @@ class RedisShardSubscriber extends JedisPubSub {
     List<TimedWatchFuture> operationWatchers = watchers.get(channel);
     boolean observe = operation == null || operation.hasMetadata() || operation.getDone();
     log.log(Level.FINER, format("onOperation %s: %s", channel, operation));
+    boolean isDone = operation != null && operation.getDone();
     synchronized (watchers) {
       ImmutableList.Builder<Consumer<Operation>> observers = ImmutableList.builder();
       for (TimedWatchFuture watchFuture : operationWatchers) {
@@ -198,6 +199,9 @@ class RedisShardSubscriber extends JedisPubSub {
               if (observe) {
                 log.log(Level.FINER, "observing " + operation);
                 observer.accept(operation);
+              }
+              if (isDone) {
+                observer.accept(null);
               }
             });
       }
@@ -290,12 +294,12 @@ class RedisShardSubscriber extends JedisPubSub {
       case RESET:
         resetOperation(channel, operationChange.getReset());
         break;
-      case EXPIRE:
-        terminateExpiredWatchers(
-            channel,
-            toInstant(operationChange.getEffectiveAt()),
-            operationChange.getExpire().getForce());
-        break;
+    //  case EXPIRE:
+    //    terminateExpiredWatchers(
+    //        channel,
+    //        toInstant(operationChange.getEffectiveAt()),
+    //        operationChange.getExpire().getForce());
+    //    break;
     }
   }
 
