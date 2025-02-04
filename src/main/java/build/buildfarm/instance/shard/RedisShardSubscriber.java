@@ -194,8 +194,8 @@ class RedisShardSubscriber extends JedisPubSub {
         }
       }
       for (Consumer<Operation> observer : observers.build()) {
-        executor.execute(
-            () -> {
+//        executor.execute(
+//            () -> {
               if (observe) {
                 log.log(Level.FINER, "observing " + operation);
                 observer.accept(operation);
@@ -206,7 +206,7 @@ class RedisShardSubscriber extends JedisPubSub {
                   watchFuture.complete();
                 }
               }
-            });
+//            });
       }
     }
   }
