@@ -222,14 +222,6 @@ public class JedisClusterFactory {
     connectionPoolConfig.setTimeBetweenEvictionRuns(Duration.ofMillis(-1L));
     log.log(Level.FINE, "PATCHED timeBetweenEvictionRunsMillis=" + connectionPoolConfig.getTimeBetweenEvictionRuns());
 
-//    log.log(Level.FINE, "Default testOnBorrow=" + connectionPoolConfig.getTestOnBorrow());
-//    connectionPoolConfig.setTestOnBorrow(true);
-//    log.log(Level.FINE, "PATCHED testOnBorrow=" + connectionPoolConfig.getTestOnBorrow());
-
-    log.log(Level.FINE, "Default lifo=" + connectionPoolConfig.getLifo());
-    connectionPoolConfig.setLifo(false);
-    log.log(Level.FINE, "PATCHED lifo=" + connectionPoolConfig.getLifo());
-
     return connectionPoolConfig;
   }
 
