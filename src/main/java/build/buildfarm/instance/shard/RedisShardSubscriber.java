@@ -118,8 +118,8 @@ class RedisShardSubscriber extends JedisPubSub {
         new TimedWatchFuture(watcher) {
           @Override
           public void unwatch() {
-//            log.log(Level.FINER, format("unwatching %s", channel));
-//            RedisShardSubscriber.this.unwatch(channel, this);
+            log.log(Level.FINER, format("unwatching %s", channel));
+            RedisShardSubscriber.this.unwatch(channel, this);
           }
         };
     boolean hasSubscribed;
@@ -134,13 +134,13 @@ class RedisShardSubscriber extends JedisPubSub {
     return watchFuture;
   }
 
-//  public void unwatch(String channel, TimedWatchFuture watchFuture) {
-//    synchronized (watchers) {
-//      if (watchers.remove(channel, watchFuture) && !watchers.containsKey(channel)) {
-//        unsubscribe(channel);
-//      }
-//    }
-//  }
+  public void unwatch(String channel, TimedWatchFuture watchFuture) {
+    synchronized (watchers) {
+      if (watchers.remove(channel, watchFuture) && !watchers.containsKey(channel)) {
+        unsubscribe(channel);
+      }
+    }
+  }
 
   public void resetWatchers(String channel, Instant expiresAt) {
     List<TimedWatchFuture> operationWatchers = watchers.get(channel);
@@ -180,7 +180,6 @@ class RedisShardSubscriber extends JedisPubSub {
       @Nullable Instant expiresAt) {
     List<TimedWatchFuture> operationWatchers = watchers.get(channel);
     boolean observe = operation == null || operation.hasMetadata() || operation.getDone();
-    boolean isDone = operation != null && operation.getDone();
     log.log(Level.FINER, format("onOperation %s: %s", channel, operation));
     synchronized (watchers) {
       ImmutableList.Builder<Consumer<Operation>> observers = ImmutableList.builder();
@@ -199,12 +198,6 @@ class RedisShardSubscriber extends JedisPubSub {
               if (observe) {
                 log.log(Level.FINER, "observing " + operation);
                 observer.accept(operation);
-              }
-              if (isDone) {
-                List<TimedWatchFuture> removedWatchers = watchers.removeAll(channel);
-                for (TimedWatchFuture watchFuture : removedWatchers) {
-                  watchFuture.complete();
-                }
               }
 //            });
       }
@@ -316,12 +309,12 @@ class RedisShardSubscriber extends JedisPubSub {
   @Override
   public void onUnsubscribe(String channel, int subscribedChannels) {
     List<TimedWatchFuture> operationWatchers;
-//    synchronized (watchers) {
-//      operationWatchers = watchers.removeAll(channel);
-//    }
-//    for (TimedWatchFuture watchFuture : operationWatchers) {
-//      watchFuture.complete();
-//    }
+    synchronized (watchers) {
+      operationWatchers = watchers.removeAll(channel);
+    }
+    for (TimedWatchFuture watchFuture : operationWatchers) {
+      watchFuture.complete();
+    }
   }
 
   public void setSubscribeFuture(SettableFuture future) {
