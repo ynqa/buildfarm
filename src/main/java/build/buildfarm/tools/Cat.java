@@ -15,6 +15,7 @@
 package build.buildfarm.tools;
 
 import static build.buildfarm.common.grpc.Channels.createChannel;
+import static build.buildfarm.common.resources.ResourceParser.parseUploadBlobRequest;
 import static build.buildfarm.instance.Utils.getBlob;
 import static build.buildfarm.server.services.OperationsService.LIST_OPERATIONS_MAXIMUM_PAGE_SIZE;
 import static com.google.common.util.concurrent.MoreExecutors.shutdownAndAwaitTermination;
@@ -40,6 +41,8 @@ import build.bazel.remote.execution.v2.ServerCapabilities;
 import build.buildfarm.common.DigestUtil;
 import build.buildfarm.common.DigestUtil.HashFunction;
 import build.buildfarm.common.ProxyDirectoriesIndex;
+import build.buildfarm.common.Write;
+import build.buildfarm.common.resources.UploadBlobRequest;
 import build.buildfarm.instance.Instance;
 import build.buildfarm.instance.stub.StubInstance;
 import build.buildfarm.v1test.Digest;
@@ -585,7 +588,7 @@ class Cat {
       ExecuteResponse response, DigestFunction.Value digestFunction)
       throws InvalidProtocolBufferException {
     printStatus(response.getStatus());
-    if (Code.forNumber(response.getStatus().getCode()) == Code.OK) {
+    if (response.hasResult()) {
       printActionResult(response.getResult(), digestFunction, 2);
       System.out.println("  CachedResult: " + (response.getCachedResult() ? "true" : "false"));
     }
@@ -613,7 +616,7 @@ class Cat {
       printExecutedActionMetadata(metadata.getPartialExecutionMetadata(), 1);
       System.out.println("Metadata:");
       System.out.println("  Stage: " + metadata.getStage());
-      // digestFunction = metadata.getDigestFunction();
+      digestFunction = metadata.getDigestFunction();
       System.out.println(
           "  Action: "
               + DigestUtil.toString(
@@ -852,6 +855,29 @@ class Cat {
     @Override
     public void run(Instance instance, Iterable<String> args) throws Exception {
       fetch(instance, args);
+    }
+  }
+
+  static class WriteStatus extends CatCommand {
+    @Override
+    public String description() {
+      return "Retrieve write status";
+    }
+
+    @Override
+    public void run(Instance instance, Iterable<String> args) throws Exception {
+      for (String resourceName : args) {
+        UploadBlobRequest request = parseUploadBlobRequest(resourceName);
+        Write write =
+            instance.getBlobWrite(
+                request.getBlob().getCompressor(),
+                request.getBlob().getDigest(),
+                UUID.fromString(request.getUuid()),
+                RequestMetadata.getDefaultInstance());
+        System.out.println("resourceName: " + resourceName);
+        System.out.println("committedSize: " + write.getCommittedSize());
+        System.out.println("complete: " + write.isComplete());
+      }
     }
   }
 
@@ -1199,6 +1225,7 @@ class Cat {
     new CatRECommand(),
     new CatDirectory(),
     new Fetch(),
+    new WriteStatus(),
   };
 
   static void usage() {
